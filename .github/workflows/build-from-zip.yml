@@ -13,11 +13,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
       - name: Extract Android project
+        shell: bash
         run: |
           ZIP="$(find . -maxdepth 3 -name 'ai-camera-cloud-build.zip' -print -quit)"
           test -n "$ZIP" || { echo "ZIP not found"; exit 1; }
@@ -35,6 +35,7 @@ jobs:
           java-version: '17'
 
       - name: Build debug APK
+        shell: bash
         run: |
           chmod +x "$PROJECT/gradlew"
           "$PROJECT/gradlew" -p "$PROJECT" assembleDebug --stacktrace
