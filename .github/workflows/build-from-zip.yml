@@ -16,39 +16,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      
       - name: Extract Android project
         shell: bash
         run: |
           ZIP="$(find . -maxdepth 3 -name 'ai-camera-cloud-build.zip' -print -quit)"
-          test -n "$ZIP" || { echo "ZIP not found"; exit 1; }
+          test -n "$ZIP" || { echo "ERROR: ZIP not found"; exit 1; }
           mkdir -p /tmp/project
           unzip -q "$ZIP" -d /tmp/project
 
           echo "=== Searching for Gradle wrapper ==="
-          find /tmp/project -maxdepth 6 -name gradlew -type f -print
+          find /tmp/project -maxdepth 8 -name gradlew -type f -print
 
-          PROJECT="$(find /tmp/project -maxdepth 6 -name gradlew -type f -print -quit)"
-          test -n "$PROJECT" || { echo "ERROR: gradlew not found anywhere in ZIP"; exit 1; }
-
+          PROJECT="$(find /tmp/project -maxdepth 8 -name gradlew -type f -print -quit)"
+          test -n "$PROJECT" || { echo "ERROR: gradlew not found in ZIP"; exit 1; }
           PROJECT="$(dirname "$PROJECT")"
+
+          echo "=== Project directory ==="
+          echo "$PROJECT"
+          echo "=== Android manifests ==="
+          find /tmp/project -maxdepth 10 -name AndroidManifest.xml -print
+
           test -f "$PROJECT/app/src/main/AndroidManifest.xml" || {
             echo "ERROR: AndroidManifest.xml not found under $PROJECT"
-            find /tmp/project -maxdepth 7 -name AndroidManifest.xml -print
             exit 1
           }
 
-          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
-
-        shell: bash
-        run: |
-          ZIP="$(find . -maxdepth 3 -name 'ai-camera-cloud-build.zip' -print -quit)"
-          test -n "$ZIP" || { echo "ZIP not found"; exit 1; }
-          mkdir -p /tmp/project
-          unzip -q "$ZIP" -d /tmp/project
-          PROJECT="/tmp/project/ai-camera"
-          test -f "$PROJECT/gradlew" || { echo "gradlew not found"; exit 1; }
-          test -f "$PROJECT/app/src/main/AndroidManifest.xml" || { echo "AndroidManifest.xml not found"; exit 1; }
           echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
 
       - name: Set up Java
@@ -67,5 +59,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ai-camera-debug-apk
-          path: /tmp/project/ai-camera/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
