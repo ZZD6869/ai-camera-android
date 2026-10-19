@@ -16,7 +16,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      
       - name: Extract Android project
+        shell: bash
+        run: |
+          ZIP="$(find . -maxdepth 3 -name 'ai-camera-cloud-build.zip' -print -quit)"
+          test -n "$ZIP" || { echo "ZIP not found"; exit 1; }
+          mkdir -p /tmp/project
+          unzip -q "$ZIP" -d /tmp/project
+
+          echo "=== Searching for Gradle wrapper ==="
+          find /tmp/project -maxdepth 6 -name gradlew -type f -print
+
+          PROJECT="$(find /tmp/project -maxdepth 6 -name gradlew -type f -print -quit)"
+          test -n "$PROJECT" || { echo "ERROR: gradlew not found anywhere in ZIP"; exit 1; }
+
+          PROJECT="$(dirname "$PROJECT")"
+          test -f "$PROJECT/app/src/main/AndroidManifest.xml" || {
+            echo "ERROR: AndroidManifest.xml not found under $PROJECT"
+            find /tmp/project -maxdepth 7 -name AndroidManifest.xml -print
+            exit 1
+          }
+
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+
         shell: bash
         run: |
           ZIP="$(find . -maxdepth 3 -name 'ai-camera-cloud-build.zip' -print -quit)"
