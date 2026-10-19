@@ -13,19 +13,35 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract project
+      - name: Extract Android project
         run: |
           ZIP="$(find . -maxdepth 3 -name 'ai-camera-cloud-build.zip' -print -quit)"
-          test -n "$ZIP" || { echo "ERROR: ZIP not found"; exit 1; }
+          test -n "$ZIP" || { echo "ZIP not found"; exit 1; }
           mkdir -p /tmp/project
           unzip -q "$ZIP" -d /tmp/project
+          PROJECT="/tmp/project/ai-camera"
+          test -f "$PROJECT/gradlew" || { echo "gradlew not found"; exit 1; }
+          test -f "$PROJECT/app/src/main/AndroidManifest.xml" || { echo "AndroidManifest.xml not found"; exit 1; }
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
 
-      - name: Inspect Android project
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build debug APK
         run: |
-          echo "=== Gradle files ==="
-          find /tmp/project -maxdepth 5 \( -name 'settings.gradle' -o -name 'settings.gradle.kts' -o -name 'build.gradle' -o -name 'build.gradle.kts' -o -name 'gradlew' -o -name 'AndroidManifest.xml' \) -print
-          echo "=== App directory ==="
-          find /tmp/project -maxdepth 4 -type d -name app -print
+          chmod +x "$PROJECT/gradlew"
+          "$PROJECT/gradlew" -p "$PROJECT" assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-camera-debug-apk
+          path: /tmp/project/ai-camera/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
