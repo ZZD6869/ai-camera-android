@@ -16,15 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check uploaded ZIP
-        run: |
-          ls -la
-          find . -maxdepth 3 -name '*.zip'
-
       - name: Extract project
         run: |
           ZIP="$(find . -maxdepth 3 -name 'ai-camera-cloud-build.zip' -print -quit)"
-          test -n "$ZIP" || { echo "ZIP not found"; exit 1; }
+          test -n "$ZIP" || { echo "ERROR: ZIP not found"; exit 1; }
           mkdir -p /tmp/project
           unzip -q "$ZIP" -d /tmp/project
-          find /tmp/project -maxdepth 4 -name settings.gradle -o -name settings.gradle.kts
+
+      - name: Inspect Android project
+        run: |
+          echo "=== Gradle files ==="
+          find /tmp/project -maxdepth 5 \( -name 'settings.gradle' -o -name 'settings.gradle.kts' -o -name 'build.gradle' -o -name 'build.gradle.kts' -o -name 'gradlew' -o -name 'AndroidManifest.xml' \) -print
+          echo "=== App directory ==="
+          find /tmp/project -maxdepth 4 -type d -name app -print
